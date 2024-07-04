@@ -6,4 +6,6 @@ by worker processes to produce a final output.
 
 This is to test my understanding of the white paper
 
-Credit : https://yunuskilicdev.medium.com/distributed-mapreduce-algorithm-and-its-go-implementation-12273720ff2f
+Credit : 
+- https://yunuskilicdev.medium.com/distributed-mapreduce-algorithm-and-its-go-implementation-12273720ff2f
+- Open courseware MIT
