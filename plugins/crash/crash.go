@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caleberi/map_reduce_rpc/mr"
+	"github.com/caleberi/map_reduce_rpc/mrp"
 )
 
 func maybeCrash() {
@@ -34,14 +34,14 @@ func maybeCrash() {
 	}
 }
 
-func Map(filename string, contents string) []mr.KeyValue {
+func Map(filename string, contents string) []mrp.KeyValue {
 	maybeCrash()
 
-	kva := []mr.KeyValue{}
-	kva = append(kva, mr.KeyValue{Key: "a", Value: filename})
-	kva = append(kva, mr.KeyValue{Key: "b", Value: strconv.Itoa(len(filename))})
-	kva = append(kva, mr.KeyValue{Key: "c", Value: strconv.Itoa(len(contents))})
-	kva = append(kva, mr.KeyValue{Key: "d", Value: "xyzzy"})
+	kva := []mrp.KeyValue{}
+	kva = append(kva, mrp.KeyValue{Key: "a", Value: filename})
+	kva = append(kva, mrp.KeyValue{Key: "b", Value: strconv.Itoa(len(filename))})
+	kva = append(kva, mrp.KeyValue{Key: "c", Value: strconv.Itoa(len(contents))})
+	kva = append(kva, mrp.KeyValue{Key: "d", Value: "xyzzy"})
 	return kva
 }
 

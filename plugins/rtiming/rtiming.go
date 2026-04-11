@@ -14,21 +14,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/caleberi/map_reduce_rpc/mr"
+	"github.com/caleberi/map_reduce_rpc/mrp"
 )
 
 func nparallel(phase string) int {
 	// create a file so that other workers will see that
 	// we're running at the same time as them.
 	pid := os.Getpid()
-	myfilename := fmt.Sprintf("mr-worker-%s-%d", phase, pid)
+	myfilename := fmt.Sprintf("mrp-worker-%s-%d", phase, pid)
 	err := ioutil.WriteFile(myfilename, []byte("x"), 0666)
 	if err != nil {
 		panic(err)
 	}
 
 	// are any other workers running?
-	// find their PIDs by scanning directory for mr-worker-XXX files.
+	// find their PIDs by scanning directory for mrp-worker-XXX files.
 	dd, err := os.Open(".")
 	if err != nil {
 		panic(err)
@@ -40,7 +40,7 @@ func nparallel(phase string) int {
 	ret := 0
 	for _, name := range names {
 		var xpid int
-		pat := fmt.Sprintf("mr-worker-%s-%%d", phase)
+		pat := fmt.Sprintf("mrp-worker-%s-%%d", phase)
 		n, err := fmt.Sscanf(name, pat, &xpid)
 		if n == 1 && err == nil {
 			err := syscall.Kill(xpid, 0)
@@ -62,19 +62,19 @@ func nparallel(phase string) int {
 	return ret
 }
 
-func Map(filename string, contents string) []mr.KeyValue {
+func Map(filename string, contents string) []mrp.KeyValue {
 
-	kva := []mr.KeyValue{}
-	kva = append(kva, mr.KeyValue{Key: "a", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "b", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "c", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "d", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "e", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "f", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "g", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "h", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "i", Value: "1"})
-	kva = append(kva, mr.KeyValue{Key: "j", Value: "1"})
+	kva := []mrp.KeyValue{}
+	kva = append(kva, mrp.KeyValue{Key: "a", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "b", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "c", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "d", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "e", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "f", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "g", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "h", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "i", Value: "1"})
+	kva = append(kva, mrp.KeyValue{Key: "j", Value: "1"})
 	return kva
 }
 

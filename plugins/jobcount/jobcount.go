@@ -10,38 +10,37 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/caleberi/map_reduce_rpc/mr"
+	"github.com/caleberi/map_reduce_rpc/mrp"
 )
 
 var count int
 
-func Map(filename string, contents string) []mr.KeyValue {
+func Map(filename string, contents string) []mrp.KeyValue {
 	me := os.Getpid()
-	f := fmt.Sprintf("mr-worker-jobcount-%d-%d", me, count)
+	f := fmt.Sprintf("mrp-worker-jobcount-%d-%d", me, count)
 	count++
-	err := ioutil.WriteFile(f, []byte("x"), 0666)
+	err := os.WriteFile(f, []byte("x"), 0666)
 	if err != nil {
 		panic(err)
 	}
 	time.Sleep(time.Duration(2000+rand.Intn(3000)) * time.Millisecond)
-	return []mr.KeyValue{mr.KeyValue{Key: "a", Value: "x"}}
+	return []mrp.KeyValue{{Key: "a", Value: "x"}}
 }
 
 func Reduce(key string, values []string) string {
-	files, err := ioutil.ReadDir(".")
+	files, err := os.ReadDir(".")
 	if err != nil {
 		panic(err)
 	}
 	invocations := 0
 	for _, f := range files {
-		if strings.HasPrefix(f.Name(), "mr-worker-jobcount") {
+		if strings.HasPrefix(f.Name(), "mrp-worker-jobcount") {
 			invocations++
 		}
 	}

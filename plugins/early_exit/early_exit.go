@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caleberi/map_reduce_rpc/mr"
+	"github.com/caleberi/map_reduce_rpc/mrp"
 )
 
 // The map function is called once for each file of input.
 // This map function just returns 1 for each file
-func Map(filename string, contents string) []mr.KeyValue {
-	kva := []mr.KeyValue{}
-	kva = append(kva, mr.KeyValue{Key: filename, Value: "1"})
+func Map(filename string, contents string) []mrp.KeyValue {
+	kva := []mrp.KeyValue{}
+	kva = append(kva, mrp.KeyValue{Key: filename, Value: "1"})
 	return kva
 }
 
