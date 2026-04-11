@@ -1,0 +1,223 @@
+services:
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mrp-master
+    command: ["-role=master", "-addr=:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}"]
+    environment:
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243
+      MAPREDUCE_MASTER_RESULT_DIR: /app/results
+      MAPREDUCE_DFS_UPLOAD_PREFIX: ${MAPREDUCE_DFS_UPLOAD_PREFIX:-/mapreduce}
+      MAPREDUCE_COORDINATOR_ADDRESS: mrp-coordinator:1234
+    volumes:
+      - ./output/results:/app/results
+    networks:
+      - default
+      - dfs-shared
+    ports:
+      - "1235:1235"
+
+  coordinator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mrp-coordinator
+    command:
+      [
+        "-role=coordinator",
+        "-addr=:1234",
+        "-master-address=mrp-master:1235",
+        "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}"
+      ]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_DFS_UPLOAD_PREFIX: ${MAPREDUCE_DFS_UPLOAD_PREFIX:-/mapreduce}
+    networks:
+      - default
+      - dfs-shared
+    depends_on:
+      - master
+    ports:
+      - "1234:1234"
+
+  # ── Per-plugin workers ──────────────────────────────────────
+
+  worker-wc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-wc
+    command: ["-role=worker", "-addr=:1236", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/wc.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/wc.so
+      MAPREDUCE_PLUGIN_NAME: wc
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1236:1236"]
+
+  worker-indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-indexer
+    command: ["-role=worker", "-addr=:1237", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/indexer.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/indexer.so
+      MAPREDUCE_PLUGIN_NAME: indexer
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1237:1237"]
+
+  worker-jobcount:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-jobcount
+    command: ["-role=worker", "-addr=:1238", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/jobcount.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/jobcount.so
+      MAPREDUCE_PLUGIN_NAME: jobcount
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1238:1238"]
+
+  worker-mtiming:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-mtiming
+    command: ["-role=worker", "-addr=:1239", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/mtiming.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/mtiming.so
+      MAPREDUCE_PLUGIN_NAME: mtiming
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1239:1239"]
+
+  worker-rtiming:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-rtiming
+    command: ["-role=worker", "-addr=:1240", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/rtiming.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/rtiming.so
+      MAPREDUCE_PLUGIN_NAME: rtiming
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1240:1240"]
+
+  worker-nocrash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-nocrash
+    command: ["-role=worker", "-addr=:1241", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/nocrash.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/nocrash.so
+      MAPREDUCE_PLUGIN_NAME: nocrash
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1241:1241"]
+
+  worker-crash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-crash
+    command: ["-role=worker", "-addr=:1242", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/crash.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/crash.so
+      MAPREDUCE_PLUGIN_NAME: crash
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1242:1242"]
+
+  worker-early-exit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-early-exit
+    command: ["-role=worker", "-addr=:1243", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/early_exit.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/early_exit.so
+      MAPREDUCE_PLUGIN_NAME: early_exit
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1243:1243"]
+
+  # ── Dashboard ──────────────────────────────────────────────
+
+  dashboard-api:
+    build:
+      context: ./dashboard/api
+      dockerfile: Dockerfile
+    container_name: dashboard-api
+    environment:
+      DASHBOARD_LISTEN_ADDR: ":4400"
+      MAPREDUCE_COORDINATOR_ADDRESS: mrp-coordinator:1234
+      MAPREDUCE_MASTER_ADDRESS: mrp-master:1235
+      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243
+      MAPREDUCE_INPUT_DIR: /app/inputs
+    volumes:
+      - ./inputs:/app/inputs:ro
+    networks:
+      - default
+    depends_on:
+      - coordinator
+      - master
+      - worker-wc
+      - worker-indexer
+      - worker-jobcount
+      - worker-mtiming
+      - worker-rtiming
+      - worker-nocrash
+      - worker-crash
+      - worker-early-exit
+    ports:
+      - "4400:4400"
+
+  dashboard-web:
+    build:
+      context: ./dashboard/web
+      dockerfile: Dockerfile
+    container_name: dashboard-web
+    networks:
+      - default
+    depends_on:
+      - dashboard-api
+    ports:
+      - "8080:80"
+
+networks:
+  dfs-shared:
+    external: true
+    name: ${DFS_SHARED_NETWORK:-hercules-net}
+
