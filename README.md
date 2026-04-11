@@ -1,4 +1,6 @@
-# map_reduce_rpc
+# Omni-reducer
+
+<img width="2032" height="1161" alt="Screenshot 2026-04-11 at 22 15 40" src="https://github.com/user-attachments/assets/c8a08ba4-ef9b-4463-93a2-f2feeeb549d3" />
 
 A distributed MapReduce implementation in Go using RPC, a write-ahead durable log, and a pluggable distributed file system (Hercules DFS).
 
@@ -42,6 +44,7 @@ The system is composed of three service roles that communicate over Go's `net/rp
   Each worker loads ONE .so plugin
   and advertises it via RPCGetPluginInfo
 ```
+<img width="2032" height="1161" alt="Screenshot 2026-04-11 at 22 13 55" src="https://github.com/user-attachments/assets/f626dcf8-334f-4167-8301-b30a8f0472d6" />
 
 ### Components
 
