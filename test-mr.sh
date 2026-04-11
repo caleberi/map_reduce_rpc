@@ -61,16 +61,15 @@ rm -f mr-*
 cd ../ || exit 1
 
 # make sure software is freshly built.
-(cd $CURR_ROOT_DIR/plugins && go clean)
-(cd .. && go clean)
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath wc.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath indexer.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath mtiming.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath rtiming.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath jobcount.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath early_exit.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath crash.go) || exit 1
-(cd $CURR_ROOT_DIR/plugins && go build $RACE -buildmode=plugin -trimpath nocrash.go) || exit 1
+(cd $CURR_ROOT_DIR && go clean)
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/wc/wc.so ./plugins/wc/wc.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/indexer/indexer.so ./plugins/indexer/indexer.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/mtiming/mtiming.so ./plugins/mtiming/mtiming.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/rtiming/rtiming.so ./plugins/rtiming/rtiming.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/jobcount/jobcount.so ./plugins/jobcount/jobcount.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/early_exit/early_exit.so ./plugins/early_exit/early_exit.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/crash/crash.so ./plugins/crash/crash.go) || exit 1
+(cd $CURR_ROOT_DIR && go build $RACE -buildmode=plugin -trimpath -o plugins/nocrash/nocrash.so ./plugins/nocrash/nocrash.go) || exit 1
 (go build $RACE -trimpath ./mr_coordinator.go) || exit 1
 (go build $RACE -trimpath ./mr_worker.go) || exit 1
 (go build $RACE -trimpath ./mr_sequential.go) || exit 1
@@ -81,7 +80,7 @@ failed_any=0
 # first word-count
 
 # generate the correct output
-./mr_sequential $CURR_ROOT_DIR/plugins/wc.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
+./mr_sequential $CURR_ROOT_DIR/plugins/wc/wc.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
 sort mr-out-0 > mr-correct-wc.txt
 rm -f mr-out*
 
@@ -94,9 +93,9 @@ pid=$!
 sleep 1
 
 # start multiple workers.
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc.so) &
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc.so) &
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc.so) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc/wc.so) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc/wc.so) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/wc/wc.so) &
 
 # wait for the coordinator to exit.
 wait $pid
@@ -121,7 +120,7 @@ wait
 rm -f mr-*
 
 # generate the correct output
-./mr_sequential $CURR_ROOT_DIR/plugins/indexer.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
+./mr_sequential $CURR_ROOT_DIR/plugins/indexer/indexer.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
 sort mr-out-0 > mr-correct-indexer.txt
 rm -f mr-out*
 
@@ -131,8 +130,8 @@ maybe_quiet $TIMEOUT ./mr_coordinator $CURR_ROOT_DIR/inputs/pg*txt &
 sleep 1
 
 # start multiple workers
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/indexer.so &
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/indexer.so
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/indexer/indexer.so &
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/indexer/indexer.so
 
 sort mr-out* | grep . > mr-indexer-all
 if cmp mr-indexer-all mr-correct-indexer.txt
@@ -154,8 +153,8 @@ rm -f mr-*
 maybe_quiet $TIMEOUT ./mr_coordinator $CURR_ROOT_DIR/inputs/pg*txt &
 sleep 1
 
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/mtiming.so &
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/mtiming.so
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/mtiming/mtiming.so &
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/mtiming/mtiming.so
 
 NT=`cat mr-out* | grep '^times-' | wc -l | sed 's/ //g'`
 if [ "$NT" != "2" ]
@@ -185,8 +184,8 @@ rm -f mr-*
 maybe_quiet $TIMEOUT ./mr_coordinator $CURR_ROOT_DIR/inputs/pg*txt &
 sleep 1
 
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/rtiming.so  &
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/rtiming.so
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/rtiming/rtiming.so  &
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/rtiming/rtiming.so
 
 NT=`cat mr-out* | grep '^[a-z] 2' | wc -l | sed 's/ //g'`
 if [ "$NT" -lt "2" ]
@@ -208,10 +207,10 @@ rm -f mr-*
 maybe_quiet $TIMEOUT ./mr_coordinator $CURR_ROOT_DIR/inputs/pg*txt  &
 sleep 1
 
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount.so &
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount.so
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount.so &
-maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount.so
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount/jobcount.so &
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount/jobcount.so
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount/jobcount.so &
+maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/jobcount/jobcount.so
 
 NT=`cat mr-out* | awk '{print $2}'`
 if [ "$NT" -eq "8" ]
@@ -241,9 +240,9 @@ rm -f $DF
 sleep 1
 
 # start multiple workers.
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit.so; touch $DF) &
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit.so; touch $DF) &
-(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit.so; touch $DF) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit/early_exit.so; touch $DF) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit/early_exit.so; touch $DF) &
+(maybe_quiet $TIMEOUT ./mr_worker $CURR_ROOT_DIR/plugins/early_exit/early_exit.so; touch $DF) &
 
 # wait for any of the coord or workers to exit.
 # `jobs` ensures that any completed old processes from other tests
@@ -287,7 +286,7 @@ rm -f mr-*
 echo '***' Starting crash test.
 
 # generate the correct output
-./mr_sequential $CURR_ROOT_DIR/plugins/nocrash.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
+./mr_sequential $CURR_ROOT_DIR/plugins/nocrash/nocrash.so $CURR_ROOT_DIR/inputs/pg*txt || exit 1
 sort mr-out-0 > mr-correct-crash.txt
 rm -f mr-out*
 
@@ -296,26 +295,26 @@ rm -f mr-done
 sleep 1
 
 # start multiple workers
-maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash.so &
+maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash/crash.so &
 
 # mimic rpc.go's coordinatorSock()
 SOCKNAME=/var/tmp/5840-mr-`id -u`
 
 ( while [ -e $SOCKNAME -a ! -f mr-done ]
   do
-    maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash.so
+    maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash/crash.so
     sleep 1
   done ) &
 
 ( while [ -e $SOCKNAME -a ! -f mr-done ]
   do
-    maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash.so
+    maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash/crash.so
     sleep 1
   done ) &
 
 while [ -e $SOCKNAME -a ! -f mr-done ]
 do
-  maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash.so
+  maybe_quiet $TIMEOUT2 ./mr_worker $CURR_ROOT_DIR/plugins/crash/crash.so
   sleep 1
 done
 
