@@ -1,0 +1,4 @@
+*.dlog
+*.dat
+output
+node_modules
