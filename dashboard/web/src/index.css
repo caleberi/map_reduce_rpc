@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── Light Theme ────────────────────────────────────────── */
+:root, .light {
+  --radius: 0.625rem;
+  --background: oklch(0.97 0.005 264);
+  --foreground: oklch(0.13 0.02 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.13 0.02 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.13 0.02 264);
+  --primary: oklch(0.45 0.14 195);
+  --primary-foreground: oklch(0.98 0.005 264);
+  --secondary: oklch(0.93 0.008 264);
+  --secondary-foreground: oklch(0.18 0.02 264);
+  --muted: oklch(0.93 0.008 264);
+  --muted-foreground: oklch(0.40 0.02 260);
+  --accent: oklch(0.92 0.01 264);
+  --accent-foreground: oklch(0.13 0.02 264);
+  --destructive: oklch(0.50 0.22 25);
+  --destructive-foreground: oklch(0.98 0.005 264);
+  --border: oklch(0.84 0.012 264);
+  --input: oklch(0.90 0.008 264);
+  --ring: oklch(0.45 0.14 195);
+
+  --glow-cyan: oklch(0.40 0.14 195);
+  --glow-emerald: oklch(0.42 0.17 162);
+  --glow-amber: oklch(0.55 0.16 85);
+  --glow-red: oklch(0.50 0.22 25);
+  --glow-blue: oklch(0.38 0.18 260);
+
+  --chart-1: oklch(0.40 0.14 195);
+  --chart-2: oklch(0.42 0.17 162);
+  --chart-3: oklch(0.55 0.16 85);
+  --chart-4: oklch(0.45 0.22 300);
+  --chart-5: oklch(0.50 0.22 25);
+
+  /* ── Topology node cards (light) ─────────────────────── */
+  --node-bg: oklch(0.97 0.005 264 / 0.92);
+  --node-border: oklch(0.84 0.012 264);
+  --topo-grid-stroke: rgba(0, 80, 120, 0.06);
+  --topo-grid-fill: transparent;
+}
+
+/* ── Dark Theme ─────────────────────────────────────────── */
+.dark {
+  --background: oklch(0.09 0.02 264);
+  --foreground: oklch(0.93 0.01 260);
+  --card: oklch(0.13 0.025 264);
+  --card-foreground: oklch(0.93 0.01 260);
+  --popover: oklch(0.13 0.025 264);
+  --popover-foreground: oklch(0.93 0.01 260);
+  --primary: oklch(0.72 0.14 195);
+  --primary-foreground: oklch(0.09 0.02 264);
+  --secondary: oklch(0.17 0.02 264);
+  --secondary-foreground: oklch(0.85 0.01 260);
+  --muted: oklch(0.17 0.02 264);
+  --muted-foreground: oklch(0.55 0.02 260);
+  --accent: oklch(0.19 0.025 264);
+  --accent-foreground: oklch(0.93 0.01 260);
+  --destructive: oklch(0.58 0.22 25);
+  --destructive-foreground: oklch(0.93 0.01 260);
+  --border: oklch(0.21 0.03 264);
+  --input: oklch(0.16 0.025 264);
+  --ring: oklch(0.72 0.14 195);
+
+  --glow-cyan: oklch(0.72 0.14 195);
+  --glow-emerald: oklch(0.72 0.17 162);
+  --glow-amber: oklch(0.8 0.16 85);
+  --glow-red: oklch(0.58 0.22 25);
+  --glow-blue: oklch(0.6 0.18 260);
+
+  --chart-1: oklch(0.72 0.14 195);
+  --chart-2: oklch(0.72 0.17 162);
+  --chart-3: oklch(0.8 0.16 85);
+  --chart-4: oklch(0.65 0.22 300);
+  --chart-5: oklch(0.58 0.22 25);
+
+  /* ── Topology node cards (dark) ──────────────────────── */
+  --node-bg: oklch(0.11 0.02 264 / 0.88);
+  --node-border: oklch(0.22 0.03 264);
+  --topo-grid-stroke: rgba(6, 182, 212, 0.035);
+  --topo-grid-fill: transparent;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-glow-cyan: var(--glow-cyan);
+  --color-glow-emerald: var(--glow-emerald);
+  --color-glow-amber: var(--glow-amber);
+  --color-glow-red: var(--glow-red);
+  --color-glow-blue: var(--glow-blue);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-node-bg: var(--node-bg);
+  --color-node-border: var(--node-border);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+  }
+}
+
+.dark body {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, oklch(0.72 0.14 195 / 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 10%, oklch(0.72 0.17 162 / 0.02) 0%, transparent 40%);
+}
+
+.light body, :root:not(.dark) body {
+  background-image:
+    radial-gradient(ellipse at 50% 30%, oklch(0.45 0.14 195 / 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 10%, oklch(0.42 0.17 162 / 0.03) 0%, transparent 40%);
+}
+
+/* ── Flow Animations ─────────────────────────────────────── */
+
+@keyframes flowForward {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes particleFade {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.flow-active {
+  stroke-dasharray: 12 6;
+  animation: flowForward 0.8s linear infinite;
+}
+
+.flow-idle {
+  stroke-dasharray: 4 8;
+  opacity: 0.2;
+}
+
+.flow-glow-layer {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
