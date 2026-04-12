@@ -176,6 +176,34 @@ var pluginProfiles = map[string]PluginProfile{
 		Name: "early_exit", Description: "Early Exit – validates that workers exit only after completion",
 		MapComplexity: 1.0, ReduceComplexity: 1.0, CrashRate: 0, MemoryFactor: 1.0,
 	},
+	"bigram": {
+		Name: "bigram", Description: "Bigram – consecutive two-word pair frequency analysis",
+		MapComplexity: 1.3, ReduceComplexity: 1.2, CrashRate: 0, MemoryFactor: 1.4,
+	},
+	"charfreq": {
+		Name: "charfreq", Description: "Char Frequency – character-level frequency distribution",
+		MapComplexity: 0.8, ReduceComplexity: 0.6, CrashRate: 0, MemoryFactor: 1.2,
+	},
+	"emailextract": {
+		Name: "emailextract", Description: "Email Extract – regex-based e-mail address extraction and counting",
+		MapComplexity: 1.4, ReduceComplexity: 0.8, CrashRate: 0, MemoryFactor: 1.1,
+	},
+	"linestats": {
+		Name: "linestats", Description: "Line Stats – distributed line, word, and character counting (wc -lwm)",
+		MapComplexity: 0.6, ReduceComplexity: 0.4, CrashRate: 0, MemoryFactor: 0.8,
+	},
+	"sentiment": {
+		Name: "sentiment", Description: "Sentiment – keyword-based positive/negative/neutral classification",
+		MapComplexity: 1.5, ReduceComplexity: 1.0, CrashRate: 0, MemoryFactor: 1.6,
+	},
+	"topwords": {
+		Name: "topwords", Description: "Top Words – word frequency with top-N ranking in reduce",
+		MapComplexity: 1.0, ReduceComplexity: 1.8, CrashRate: 0, MemoryFactor: 1.5,
+	},
+	"urlextractor": {
+		Name: "urlextractor", Description: "URL Extractor – regex-based URL extraction and counting",
+		MapComplexity: 1.4, ReduceComplexity: 0.8, CrashRate: 0, MemoryFactor: 1.1,
+	},
 }
 
 // ---------------------------------------------------------------------------

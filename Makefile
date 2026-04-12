@@ -8,7 +8,7 @@ DFS_ADDR ?= localhost:8089
 PLUGIN_PATH ?= ./plugins/wc/wc.so
 UPLOAD_FOLDER ?= ./inputs
 
-.PHONY: help build run-coordinator run-master run-worker run upload-folder test test-mrp fmt clean plugin-wc plugin-indexer plugin-jobcount plugin-mtiming plugin-rtiming plugin-crash plugin-nocrash plugin-early-exit build-all-plugins docker-test docker-test-plugin
+.PHONY: help build run-coordinator run-master run-worker run upload-folder test test-mrp fmt clean plugin-wc plugin-indexer plugin-jobcount plugin-mtiming plugin-rtiming plugin-crash plugin-nocrash plugin-early-exit plugin-bigram plugin-charfreq plugin-emailextract plugin-linestats plugin-sentiment plugin-topwords plugin-urlextractor build-all-plugins docker-test docker-test-plugin
 
 help:
 	@echo "Targets:"
@@ -22,7 +22,7 @@ help:
 	@echo "  make test-mrp           - Run mrp package tests"
 	@echo "  make fmt                - Format code"
 	@echo "  make plugin-wc          - Build wc plugin"
-	@echo "  make build-all-plugins  - Build all plugins"
+	@echo "  make build-all-plugins  - Build all 15 plugins"
 	@echo "  make dashboard-api      - Run simulation API (port 4400)"
 	@echo "  make dashboard-web-dev  - Run web dashboard dev (port 5173)"
 	@echo "  make clean              - Remove generated artifacts"
@@ -89,11 +89,32 @@ plugin-nocrash:
 plugin-early-exit:
 	$(GO) build -buildmode=plugin -o plugins/early_exit/early_exit.so ./plugins/early_exit/early_exit.go
 
-build-all-plugins: plugin-wc plugin-indexer plugin-jobcount plugin-mtiming plugin-rtiming plugin-crash plugin-nocrash plugin-early-exit
+plugin-bigram:
+	$(GO) build -buildmode=plugin -o plugins/bigram/bigram.so ./plugins/bigram/bigram.go
+
+plugin-charfreq:
+	$(GO) build -buildmode=plugin -o plugins/charfreq/charfreq.so ./plugins/charfreq/charfreq.go
+
+plugin-emailextract:
+	$(GO) build -buildmode=plugin -o plugins/emailextract/emailextract.so ./plugins/emailextract/emailextract.go
+
+plugin-linestats:
+	$(GO) build -buildmode=plugin -o plugins/linestats/linestats.so ./plugins/linestats/linestats.go
+
+plugin-sentiment:
+	$(GO) build -buildmode=plugin -o plugins/sentiment/sentiment.so ./plugins/sentiment/sentiment.go
+
+plugin-topwords:
+	$(GO) build -buildmode=plugin -o plugins/topwords/topwords.so ./plugins/topwords/topwords.go
+
+plugin-urlextractor:
+	$(GO) build -buildmode=plugin -o plugins/urlextractor/urlextractor.so ./plugins/urlextractor/urlextractor.go
+
+build-all-plugins: plugin-wc plugin-indexer plugin-jobcount plugin-mtiming plugin-rtiming plugin-crash plugin-nocrash plugin-early-exit plugin-bigram plugin-charfreq plugin-emailextract plugin-linestats plugin-sentiment plugin-topwords plugin-urlextractor
 
 docker-test: ## Run all plugins via Docker (build once, test each plugin)
 	docker compose build
-	@for plugin in wc indexer jobcount nocrash; do \
+	@for plugin in wc indexer jobcount nocrash bigram charfreq emailextract linestats sentiment topwords urlextractor; do \
 		echo "=== Testing plugin: $$plugin ==="; \
 		rm -rf ./output/results/*; \
 		MAPREDUCE_PLUGIN=$$plugin docker compose up -d; \

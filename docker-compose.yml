@@ -7,7 +7,7 @@ services:
     command: ["-role=master", "-addr=:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}"]
     environment:
       MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
-      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243
+      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243,worker-bigram:1244,worker-charfreq:1245,worker-emailextract:1246,worker-linestats:1247,worker-sentiment:1248,worker-topwords:1249,worker-urlextractor:1250
       MAPREDUCE_MASTER_RESULT_DIR: /app/results
       MAPREDUCE_DFS_UPLOAD_PREFIX: ${MAPREDUCE_DFS_UPLOAD_PREFIX:-/mapreduce}
       MAPREDUCE_COORDINATOR_ADDRESS: mrp-coordinator:1234
@@ -173,6 +173,118 @@ services:
     depends_on: [master]
     ports: ["1243:1243"]
 
+  worker-bigram:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-bigram
+    command: ["-role=worker", "-addr=:1244", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/bigram.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/bigram.so
+      MAPREDUCE_PLUGIN_NAME: bigram
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1244:1244"]
+
+  worker-charfreq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-charfreq
+    command: ["-role=worker", "-addr=:1245", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/charfreq.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/charfreq.so
+      MAPREDUCE_PLUGIN_NAME: charfreq
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1245:1245"]
+
+  worker-emailextract:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-emailextract
+    command: ["-role=worker", "-addr=:1246", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/emailextract.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/emailextract.so
+      MAPREDUCE_PLUGIN_NAME: emailextract
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1246:1246"]
+
+  worker-linestats:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-linestats
+    command: ["-role=worker", "-addr=:1247", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/linestats.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/linestats.so
+      MAPREDUCE_PLUGIN_NAME: linestats
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1247:1247"]
+
+  worker-sentiment:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-sentiment
+    command: ["-role=worker", "-addr=:1248", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/sentiment.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/sentiment.so
+      MAPREDUCE_PLUGIN_NAME: sentiment
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1248:1248"]
+
+  worker-topwords:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-topwords
+    command: ["-role=worker", "-addr=:1249", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/topwords.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/topwords.so
+      MAPREDUCE_PLUGIN_NAME: topwords
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1249:1249"]
+
+  worker-urlextractor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker-urlextractor
+    command: ["-role=worker", "-addr=:1250", "-master-address=mrp-master:1235", "-dfs-address=${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}", "-plugin-path=/app/plugins/urlextractor.so"]
+    environment:
+      MAPREDUCE_MASTER_SERVER_ADDRESS: mrp-master:1235
+      MAPREDUCE_DFS_SERVER_ADDRESS: ${MAPREDUCE_DFS_SERVER_ADDRESS:-hercules-master:9090}
+      MAPREDUCE_PLUGIN_PATH: /app/plugins/urlextractor.so
+      MAPREDUCE_PLUGIN_NAME: urlextractor
+      MAPREDUCE_N_REDUCE: ${MAPREDUCE_N_REDUCE:-2}
+    networks: [default, dfs-shared]
+    depends_on: [master]
+    ports: ["1250:1250"]
+
   # ── Dashboard ──────────────────────────────────────────────
 
   dashboard-api:
@@ -184,7 +296,7 @@ services:
       DASHBOARD_LISTEN_ADDR: ":4400"
       MAPREDUCE_COORDINATOR_ADDRESS: mrp-coordinator:1234
       MAPREDUCE_MASTER_ADDRESS: mrp-master:1235
-      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243
+      MAPREDUCE_WORKER_ADDRESSES: worker-wc:1236,worker-indexer:1237,worker-jobcount:1238,worker-mtiming:1239,worker-rtiming:1240,worker-nocrash:1241,worker-crash:1242,worker-early-exit:1243,worker-bigram:1244,worker-charfreq:1245,worker-emailextract:1246,worker-linestats:1247,worker-sentiment:1248,worker-topwords:1249,worker-urlextractor:1250
       MAPREDUCE_INPUT_DIR: /app/inputs
     volumes:
       - ./inputs:/app/inputs:ro
@@ -201,6 +313,13 @@ services:
       - worker-nocrash
       - worker-crash
       - worker-early-exit
+      - worker-bigram
+      - worker-charfreq
+      - worker-emailextract
+      - worker-linestats
+      - worker-sentiment
+      - worker-topwords
+      - worker-urlextractor
     ports:
       - "4400:4400"
 

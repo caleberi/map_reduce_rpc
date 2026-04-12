@@ -18,7 +18,14 @@ RUN mkdir -p /out/plugins && \
     CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/rtiming.so ./plugins/rtiming/rtiming.go && \
     CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/crash.so ./plugins/crash/crash.go && \
     CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/nocrash.so ./plugins/nocrash/nocrash.go && \
-    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/early_exit.so ./plugins/early_exit/early_exit.go
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/early_exit.so ./plugins/early_exit/early_exit.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/bigram.so ./plugins/bigram/bigram.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/charfreq.so ./plugins/charfreq/charfreq.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/emailextract.so ./plugins/emailextract/emailextract.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/linestats.so ./plugins/linestats/linestats.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/sentiment.so ./plugins/sentiment/sentiment.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/topwords.so ./plugins/topwords/topwords.go && \
+    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -buildmode=plugin -o /out/plugins/urlextractor.so ./plugins/urlextractor/urlextractor.go
 
 FROM debian:bookworm-slim
 WORKDIR /app

@@ -98,7 +98,14 @@ The system is composed of three service roles that communicate over Go's `net/rp
 │   ├── early_exit/early_exit.go  # Early exit test
 │   ├── jobcount/jobcount.go # Job invocation counter
 │   ├── mtiming/mtiming.go   # Map parallelism test
-│   └── rtiming/rtiming.go   # Reduce parallelism test
+│   ├── rtiming/rtiming.go   # Reduce parallelism test
+│   ├── bigram/bigram.go     # Bigram frequency analysis
+│   ├── charfreq/charfreq.go # Character frequency distribution
+│   ├── emailextract/emailextract.go  # E-mail address extraction
+│   ├── linestats/linestats.go  # Line/word/char counting (wc -lwm)
+│   ├── sentiment/sentiment.go  # Sentiment classification
+│   ├── topwords/topwords.go    # Top-N word frequency
+│   └── urlextractor/urlextractor.go  # URL extraction
 ├── inputs/                  # Sample input texts (Project Gutenberg)
 ├── docs/                    # Design documents
 ├── Makefile                 # Build, run, and test targets
@@ -111,7 +118,7 @@ The system is composed of three service roles that communicate over Go's `net/rp
 │       ├── Dockerfile
 │       └── nginx.conf
 ├── Dockerfile               # Multi-stage Docker build (mrp binary + plugins)
-├── docker-compose.yml       # Full stack (coordinator + master + 8 plugin workers + dashboard)
+├── docker-compose.yml       # Full stack (coordinator + master + 15 plugin workers + dashboard)
 ├── test-mr.sh               # Integration test suite
 └── test-mr-many.sh          # Repeated trial runner
 ```
@@ -160,6 +167,13 @@ make plugin-early-exit  # Early exit test
 make plugin-jobcount    # Job count test
 make plugin-mtiming     # Map parallelism test
 make plugin-rtiming     # Reduce parallelism test
+make plugin-bigram      # Bigram frequency
+make plugin-charfreq    # Character frequency
+make plugin-emailextract # E-mail extraction
+make plugin-linestats   # Line/word/char stats
+make plugin-sentiment   # Sentiment analysis
+make plugin-topwords    # Top-N words
+make plugin-urlextractor # URL extraction
 ```
 
 ## Running
@@ -215,7 +229,7 @@ make upload-folder UPLOAD_FOLDER=./inputs
 # Ensure the Hercules DFS network exists:
 docker network create hercules-net   # skip if already created
 
-# Start the full stack (coordinator + master + 8 plugin workers + dashboard):
+# Start the full stack (coordinator + master + 15 plugin workers + dashboard):
 docker compose up --build
 
 # Or in detached mode:
@@ -236,6 +250,13 @@ The `docker-compose.yml` starts:
 | `worker-nocrash` | 1241 | No-crash baseline plugin |
 | `worker-crash` | 1242 | Crash stress-test plugin |
 | `worker-early-exit` | 1243 | Early exit test plugin |
+| `worker-bigram` | 1244 | Bigram frequency plugin |
+| `worker-charfreq` | 1245 | Character frequency plugin |
+| `worker-emailextract` | 1246 | E-mail extraction plugin |
+| `worker-linestats` | 1247 | Line stats plugin |
+| `worker-sentiment` | 1248 | Sentiment analysis plugin |
+| `worker-topwords` | 1249 | Top-N words plugin |
+| `worker-urlextractor` | 1250 | URL extraction plugin |
 | `dashboard-api` | 4400 | Dashboard HTTP API |
 | `dashboard-web` | 8080 | Dashboard frontend (nginx) |
 
@@ -329,7 +350,7 @@ Open http://localhost:5173 to access the dev dashboard.
 
 ### Features
 
-- **Plugin Selection** — Choose any of the 8 plugins (wc, indexer, jobcount, mtiming, rtiming, nocrash, crash, early_exit) from a dropdown. Jobs are routed to the correct worker automatically.
+- **Plugin Selection** — Choose any of the 15 plugins (wc, indexer, jobcount, mtiming, rtiming, nocrash, crash, early_exit, bigram, charfreq, emailextract, linestats, sentiment, topwords, urlextractor) from a dropdown. Jobs are routed to the correct worker automatically.
 - **Simulate** — Configure plugin, input size, worker count, chunk size, and network latency. When the cluster is running, the dashboard uploads files, triggers real MapReduce execution, and reports actual metrics. Falls back to math-based simulation when the cluster is unavailable.
 - **Compare** — Select multiple plugins and run real jobs for each sequentially. Results are displayed side-by-side with radar charts, stacked duration bars, and a sortable table.
 - **Cluster Status** — Live topology view showing coordinator, master, and all worker nodes with online/offline status.
