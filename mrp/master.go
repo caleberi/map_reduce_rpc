@@ -19,7 +19,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const defaultDispatchTimeout = 30 * time.Second
+const (
+	defaultDispatchTimeout = 30 * time.Second
+
+	MAPREDUCE_DFS_SERVER_ADDRESS  = "MAPREDUCE_DFS_SERVER_ADDRESS"
+	MAPREDUCE_COORDINATOR_ADDRESS = "MAPREDUCE_COORDINATOR_ADDRESS"
+	MAPREDUCE_WORKER_ADDRESSES    = "MAPREDUCE_WORKER_ADDRESSES"
+	MAPREDUCE_MASTER_RESULT_DIR   = "MAPREDUCE_MASTER_RESULT_DIR"
+)
 
 type jobMeta struct {
 	expectedChunks int
@@ -51,12 +58,12 @@ type Master struct {
 }
 
 func NewMaster(serverAddress string) (*Master, error) {
-	workerAddresses := parseWorkerAddresses(envOrDefault("MAPREDUCE_WORKER_ADDRESSES", ""))
+	workerAddresses := parseWorkerAddresses(envOrDefault(MAPREDUCE_WORKER_ADDRESSES, ""))
 
 	master := &Master{
 		serverAddress:      serverAddress,
-		fsServerAddress:    envOrDefault("MAPREDUCE_DFS_SERVER_ADDRESS", "localhost:8089"),
-		coordinatorAddress: envOrDefault("MAPREDUCE_COORDINATOR_ADDRESS", ""),
+		fsServerAddress:    envOrDefault(MAPREDUCE_DFS_SERVER_ADDRESS, "localhost:8089"),
+		coordinatorAddress: envOrDefault(MAPREDUCE_COORDINATOR_ADDRESS, ""),
 		workerAddresses:    workerAddresses,
 		results:            make(map[string]MapReduceResultRequest),
 		jobs:               make(map[uint64]jobMeta),
@@ -211,7 +218,6 @@ func (m *Master) RPCStartMapReduce(request StartMapReduceRequest, reply *StartMa
 		return nil
 	}
 
-	// Select workers: if a plugin is requested, filter to matching workers.
 	targetWorkers := m.workerAddresses
 	if plugin := strings.TrimSpace(request.Plugin); plugin != "" {
 		targetWorkers = m.getWorkersForPlugin(plugin)
@@ -353,12 +359,8 @@ func (m *Master) fetchFileMetadataFromDFS(ctx context.Context, handle Handle) (*
 		contentFile := strings.TrimRight(remotePrefix, "/") + "/" + logFile + ".content"
 		contentDfsPath := dfscommon.Path(contentFile)
 
-		// First try the .content file — this contains the actual file data
-		// uploaded by the coordinator as a separate DFS file.
 		contentInfo, err := dfsClient.GetFile(contentDfsPath)
 		if err != nil || contentInfo == nil || contentInfo.Length == 0 {
-			// Fall back to looking for the .json metadata file if .content
-			// doesn't exist (backward compat).
 			fetchErr = errors.Join(fetchErr, fmt.Errorf("%s: content file not found", contentFile))
 
 			dfsPath := dfscommon.Path(remoteFile)
@@ -372,9 +374,6 @@ func (m *Master) fetchFileMetadataFromDFS(ctx context.Context, handle Handle) (*
 				continue
 			}
 
-			// Legacy path: only JSON metadata exists. Workers will read the
-			// JSON metadata (which is the old broken behavior). This branch
-			// keeps old data accessible but won't produce correct results.
 			metadata := &FileMetadata{
 				Handle:     handle,
 				SourceLog:  logFile + ".json",
@@ -391,7 +390,6 @@ func (m *Master) fetchFileMetadataFromDFS(ctx context.Context, handle Handle) (*
 			return metadata, nil
 		}
 
-		// Build metadata with chunks pointing to the .content file (actual text).
 		metadata := &FileMetadata{
 			Handle:     handle,
 			SourceLog:  logFile + ".content",
@@ -443,7 +441,7 @@ func (m *Master) fetchFileMetadataFromDFS(ctx context.Context, handle Handle) (*
 }
 
 func resolveUploadPrefixes() []string {
-	configured := strings.TrimSpace(envOrDefault("MAPREDUCE_DFS_UPLOAD_PREFIX", "/mapreduce"))
+	configured := strings.TrimSpace(envOrDefault(MAPREDUCE_DFS_UPLOAD_PREFIX, "/mapreduce"))
 	prefixes := []string{configured, "/mapreduce", "/mapreduce/download_logs"}
 
 	result := make([]string, 0, len(prefixes))
@@ -482,25 +480,20 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 		Str("output_file", request.OutputFile).
 		Msg("received map reduce output from worker")
 
-	// Store result and check for job completion under a single lock hold.
 	m.resultMux.Lock()
 	m.results[resultKey] = request
 
-	// Check whether all expected chunks have been received.
 	m.jobsMu.Lock()
 	job, tracked := m.jobs[request.Handle.Id]
 	m.jobsMu.Unlock()
 
 	if !tracked {
-		// Result arrived for an untracked job (e.g., late duplicate). Accept it
-		// but skip collation.
 		m.resultMux.Unlock()
 		reply.Status = "success"
 		reply.Message = "result accepted (job not tracked)"
 		return nil
 	}
 
-	// Count how many results we have for this handle.
 	prefix := fmt.Sprintf("%d:", request.Handle.Id)
 	received := 0
 	for key := range m.results {
@@ -510,14 +503,12 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 	}
 
 	if received < job.expectedChunks {
-		// More chunks still pending — accept and return without writing.
 		m.resultMux.Unlock()
 		reply.Status = "success"
 		reply.Message = fmt.Sprintf("result accepted (%d/%d chunks received)", received, job.expectedChunks)
 		return nil
 	}
 
-	// All chunks received — collate under lock to prevent races (fix #8).
 	type chunkResult struct {
 		ChunkIndex  int    `json:"chunk_index"`
 		WorkerAddr  string `json:"worker_addr"`
@@ -571,7 +562,7 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 		LastUpdatedAt:  time.Now().UTC().Format(time.RFC3339Nano),
 	}
 
-	resultDir := envOrDefault("MAPREDUCE_MASTER_RESULT_DIR", "./results")
+	resultDir := envOrDefault(MAPREDUCE_MASTER_RESULT_DIR, "./results")
 	if err := os.MkdirAll(resultDir, 0o755); err != nil {
 		m.logger.Error().Err(err).Str("dir", resultDir).Msg("failed to create result directory")
 		reply.Status = "error"
@@ -580,7 +571,6 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 		return nil
 	}
 
-	// Atomic write: write to temp file then rename (fix #7).
 	resultFile := filepath.Join(resultDir, fmt.Sprintf("map_reduce_result_%d.json", request.Handle.Id))
 	tmpFile := resultFile + ".tmp"
 	file, err := os.Create(tmpFile)
@@ -614,7 +604,6 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 		return nil
 	}
 
-	// Clean up job tracker for this handle (fix #2).
 	m.jobsMu.Lock()
 	delete(m.jobs, request.Handle.Id)
 	m.jobsMu.Unlock()
@@ -625,9 +614,6 @@ func (m *Master) RPCSubmitMapReduceResult(request MapReduceResultRequest, reply 
 		Str("result_file", resultFile).
 		Msg("all chunks received, collated result written")
 
-	// Notify coordinator that this job is complete so it can release
-	// the processing handle. Best-effort: failures are logged but do
-	// not affect the result already written.
 	m.notifyCoordinator(request.Handle, resultFile)
 
 	reply.Status = "success"
@@ -664,13 +650,10 @@ func (m *Master) notifyCoordinator(handle Handle, resultFile string) {
 	}
 }
 
-// getWorkersForPlugin returns worker addresses running the requested plugin.
-// It lazily discovers each worker's plugin via RPCGetPluginInfo and caches the result.
 func (m *Master) getWorkersForPlugin(plugin string) []string {
 	m.workerPluginsMu.Lock()
 	defer m.workerPluginsMu.Unlock()
 
-	// Discover any workers we haven't probed yet.
 	for _, addr := range m.workerAddresses {
 		if _, ok := m.workerPlugins[addr]; ok {
 			continue
@@ -701,20 +684,17 @@ func (m *Master) getWorkersForPlugin(plugin string) []string {
 	return matched
 }
 
-// RPCGetJobResult checks whether the result for a given handle has been
-// written and returns the raw JSON if so.
 func (m *Master) RPCGetJobResult(request GetJobResultRequest, reply *GetJobResultReply) error {
 	if reply == nil {
 		return fmt.Errorf("reply cannot be nil")
 	}
 
-	resultDir := envOrDefault("MAPREDUCE_MASTER_RESULT_DIR", "./results")
+	resultDir := envOrDefault(MAPREDUCE_MASTER_RESULT_DIR, "./results")
 	resultFile := filepath.Join(resultDir, fmt.Sprintf("map_reduce_result_%d.json", request.HandleId))
 
 	data, err := os.ReadFile(resultFile)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Job still in progress — check if it's tracked.
 			m.jobsMu.Lock()
 			_, tracked := m.jobs[request.HandleId]
 			m.jobsMu.Unlock()

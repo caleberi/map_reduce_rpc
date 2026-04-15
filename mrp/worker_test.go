@@ -185,7 +185,6 @@ func TestWorkerRPCMapReduceEndToEndWithoutPlugin(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "accepted", reply.Status)
 
-	// Poll for the async result callback from worker.
 	result := waitForResult(t, master, "88:0", 10*time.Second)
 	assert.Contains(t, result.OutputData, "alpha 2")
 	assert.Contains(t, result.OutputData, "beta 1")

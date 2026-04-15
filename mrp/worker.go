@@ -59,19 +59,19 @@ type Worker struct {
 
 func NewWorker(serverAddress string) (*Worker, error) {
 	nReduce := 1
-	if parsed, err := strconv.Atoi(strings.TrimSpace(os.Getenv("MAPREDUCE_N_REDUCE"))); err == nil && parsed > 0 {
+	if parsed, err := strconv.Atoi(strings.TrimSpace(os.Getenv(MAPREDUCE_N_REDUCE))); err == nil && parsed > 0 {
 		nReduce = parsed
 	}
 
 	worker := &Worker{
 		serverAddress: serverAddress,
-		masterAddress: envOrDefault("MAPREDUCE_MASTER_SERVER_ADDRESS", defaultWorkerMasterAddress),
-		fsServerAddr:  envOrDefault("MAPREDUCE_DFS_SERVER_ADDRESS", "localhost:8089"),
-		pluginName:    strings.TrimSpace(os.Getenv("MAPREDUCE_PLUGIN_NAME")),
-		pluginPath:    strings.TrimSpace(os.Getenv("MAPREDUCE_PLUGIN_PATH")),
+		masterAddress: envOrDefault(MAPREDUCE_MASTER_SERVER_ADDRESS, defaultWorkerMasterAddress),
+		fsServerAddr:  envOrDefault(MAPREDUCE_DFS_SERVER_ADDRESS, "localhost:8089"),
+		pluginName:    strings.TrimSpace(os.Getenv(MAPREDUCE_PLUGIN_NAME)),
+		pluginPath:    strings.TrimSpace(os.Getenv(MAPREDUCE_PLUGIN_PATH)),
 		nReduce:       nReduce,
-		intermediate:  envOrDefault("MAPREDUCE_WORKER_INTERMEDIATE_DIR", defaultIntermediateDir),
-		outputDir:     envOrDefault("MAPREDUCE_WORKER_OUTPUT_DIR", defaultOutputDir),
+		intermediate:  envOrDefault(MAPREDUCE_WORKER_INTERMEDIATE_DIR, defaultIntermediateDir),
+		outputDir:     envOrDefault(MAPREDUCE_WORKER_OUTPUT_DIR, defaultOutputDir),
 		mapf:          defaultMap,
 		reducef:       defaultReduce,
 		logger:        zerolog.New(os.Stdout),
@@ -339,7 +339,6 @@ func (w *Worker) loadMapReducePlugin() error {
 	w.mapf = mapf
 	w.reducef = reducef
 	w.pluginPath = resolvedPath
-	// Derive plugin name from the path if not explicitly set via env.
 	if w.pluginName == "" {
 		w.pluginName = strings.TrimSuffix(filepath.Base(resolvedPath), ".so")
 	}
@@ -349,10 +348,7 @@ func (w *Worker) loadMapReducePlugin() error {
 
 func (w *Worker) readChunkData(ctx context.Context, request MapReduceRequest) ([]byte, error) {
 	if len(request.File.RawContent) > 0 {
-		start := request.ChunkInfo.Offset
-		if start < 0 {
-			start = 0
-		}
+		start := max(request.ChunkInfo.Offset, 0)
 		if start >= int64(len(request.File.RawContent)) {
 			return []byte{}, nil
 		}
@@ -389,10 +385,8 @@ func (w *Worker) readChunkData(ctx context.Context, request MapReduceRequest) ([
 		}
 	}
 
-	// Reuse a single DFS client across chunk reads (Fix #2).
 	dfsClient := w.getOrCreateDFSClient(ctx)
 
-	// Check for cancellation before starting potentially long DFS read (Fix #6).
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -455,7 +449,6 @@ func (w *Worker) runReduceFromChannel(request MapReduceRequest, intermediateFile
 		i = j
 	}
 
-	// Atomic write: temp file then rename (Fix #7).
 	outputFile := filepath.Join(w.outputDir, fmt.Sprintf("mr-out-%d-%d", request.Handle.Id, request.ChunkIndex))
 	tmpFile := outputFile + ".tmp"
 	if err := os.WriteFile(tmpFile, output.Bytes(), 0o644); err != nil {
@@ -491,7 +484,6 @@ func (w *Worker) submitResultToMaster(request MapReduceRequest, outputFile, outp
 		return fmt.Errorf("master address not configured")
 	}
 
-	// Use a deadline so we don't block indefinitely if master is down (Fix #3).
 	conn, err := net.DialTimeout("tcp", w.masterAddress, defaultSubmitTimeout)
 	if err != nil {
 		return err

@@ -694,19 +694,19 @@ func (d *DurableBuffer) GetCompletedHandleForRetransmission() []Handle {
 
 func (d *DurableBuffer) MarkHandlesUploaded(handles []Handle) {
 	now := time.Now().UnixNano()
-	for _, handle := range handles {
+	ForEach(handles, func(_ int, handle Handle) {
 		d.uploadedHandles.Store(handle, now)
 		d.handles.Delete(handle)
-	}
+	})
 	d.saveUploadedHandles()
-	for _, handle := range handles {
+	ForEach(handles, func(_ int, handle Handle) {
 		logFile := fmt.Sprintf(downloadLogFileNameFormat, handle.Id, handle.TimeStamp)
 		logPath := filepath.Join(d.logDir, logFile)
 		if err := os.Remove(logPath); err != nil {
 			d.logger.Warn().Err(err).Str("log_file", logFile).Msg(
 				"failed to delete log file after upload")
 		}
-	}
+	})
 }
 
 func (d *DurableBuffer) GetUploadedHandles() []Handle {

@@ -22,22 +22,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type completedHandleMetadata struct {
-	Handle      Handle `json:"handle"`
-	SourceLog   string `json:"source_log"`
-	SourcePath  string `json:"source_path"`
-	SizeBytes   int64  `json:"size_bytes"`
-	ModUnixNano int64  `json:"mod_unix_nano"`
-	UploadedAt  string `json:"uploaded_at"`
-	Completed   bool   `json:"completed"`
-	RawContent  []byte `json:"raw_content,omitempty"`
-}
-
-const (
-	MAPREDUCE_DOWNLOAD_LOG_DIR      = "MAPREDUCE_DOWNLOAD_LOG_DIR"
-	MAPREDUCE_MASTER_SERVER_ADDRESS = "MAPREDUCE_MASTER_SERVER_ADDRESS"
-)
-
 var (
 	defaultDownloadBufferSize = 1024
 	defaultMasterAddress      = "localhost:1235"
@@ -56,10 +40,10 @@ type Coordinator struct {
 	startErr        error
 	stopCh          chan struct{}
 
-	uploadMu  sync.Mutex // guards uploadFileToStorage against concurrent calls
+	uploadMu  sync.Mutex
 	logger    zerolog.Logger
 	listener  Listener
-	dfsClient *hercules.HerculesClient // lazily initialized, reused across ticks
+	dfsClient *hercules.HerculesClient
 
 	durableLog *DurableBuffer
 }
@@ -167,8 +151,7 @@ func (c *Coordinator) Close() error {
 
 	c.stopOnce.Do(func() {
 		close(c.stopCh)
-		// Wait for ticker and error goroutines to exit before final upload
-		// to prevent concurrent uploadFileToStorage calls.
+
 		c.wg.Wait()
 
 		ctx, cancel := context.WithTimeout(context.Background(), defaultCloseTimeout)
@@ -179,21 +162,20 @@ func (c *Coordinator) Close() error {
 				"failed final upload of completed log metadata to DFS")
 		}
 
-		if c.listener != nil {
-			if err := c.listener.Close(); err != nil {
-				closeErr = errors.Join(
-					closeErr, fmt.Errorf("failed to close RPC listener: %w", err),
-				)
-			}
+		closer := map[string]interface{ Close() error }{
+			"RPC listener": c.listener,
+			"durable log":  c.durableLog,
 		}
-
-		if c.durableLog != nil {
-			if err := c.durableLog.Close(); err != nil {
-				closeErr = errors.Join(closeErr, fmt.Errorf("failed to close durable log: %w", err))
+		for name, c := range closer {
+			if c != nil {
+				if err := c.Close(); err != nil {
+					closeErr = errors.Join(
+						closeErr, fmt.Errorf("failed to close %s: %w", name, err),
+					)
+				}
 			}
 		}
 	})
-
 	return closeErr
 }
 
@@ -209,22 +191,32 @@ func (c *Coordinator) RPCPing(message string, reply *string) error {
 	return nil
 }
 
-func (c *Coordinator) RPCForwardDownload(request DownloadRequest, reply *DownloadReply) error {
+func (c *Coordinator) RPCForwardDownload(
+	request DownloadRequest, reply *DownloadReply) error {
 	if reply == nil {
 		return fmt.Errorf("reply cannot be nil")
 	}
 
-	content := Content{
-		Id:   request.Handle,
-		Data: request.Data,
-		Eof:  request.Eof,
-	}
-	err := c.durableLog.Write(content)
+	err := c.durableLog.Write(
+		Content{
+			Id:   request.Handle,
+			Data: request.Data,
+			Eof:  request.Eof,
+		})
 	if err != nil {
 		reply.Status = "error"
-		if errors.Is(err, ErrInvalidHandle) || errors.Is(err, ErrBufferFull) {
+		switch err {
+		case ErrInvalidHandle:
+			c.logger.Warn().Uint64("handle_id", request.Handle.Id).
+				Msg("invalid handle ID in download request")
 			reply.ErrorCode = 400
-		} else {
+		case ErrBufferFull:
+			c.logger.Warn().Uint64("handle_id", request.Handle.Id).
+				Msg("durable buffer is full, cannot accept more data for handle")
+			reply.ErrorCode = 400
+		default:
+			c.logger.Error().Err(err).Uint64("handle_id", request.Handle.Id).
+				Msg("failed to write content to durable log")
 			reply.ErrorCode = 500
 		}
 		reply.ErrorMessage = fmt.Sprintf("failed to write content: %v", err)
@@ -234,7 +226,8 @@ func (c *Coordinator) RPCForwardDownload(request DownloadRequest, reply *Downloa
 	return nil
 }
 
-func (c *Coordinator) RPCGenerateDownloadHandle(request HandleRequest, reply *HandleReply) error {
+func (c *Coordinator) RPCGenerateDownloadHandle(
+	request HandleRequest, reply *HandleReply) error {
 	if reply == nil {
 		return fmt.Errorf("reply cannot be nil")
 	}
@@ -244,7 +237,8 @@ func (c *Coordinator) RPCGenerateDownloadHandle(request HandleRequest, reply *Ha
 	return nil
 }
 
-func (c *Coordinator) RPCNotifyJobComplete(request JobCompleteRequest, reply *JobCompleteReply) error {
+func (c *Coordinator) RPCNotifyJobComplete(
+	request JobCompleteRequest, reply *JobCompleteReply) error {
 	if reply == nil {
 		return fmt.Errorf("reply cannot be nil")
 	}
@@ -265,7 +259,8 @@ func (c *Coordinator) RPCNotifyJobComplete(request JobCompleteRequest, reply *Jo
 // RPCTriggerProcessing immediately flushes the durable buffer, uploads
 // completed handles to DFS, and dispatches them to the master — bypassing
 // the 15-second poll timer.
-func (c *Coordinator) RPCTriggerProcessing(request TriggerProcessingRequest, reply *TriggerProcessingReply) error {
+func (c *Coordinator) RPCTriggerProcessing(
+	request TriggerProcessingRequest, reply *TriggerProcessingReply) error {
 	if reply == nil {
 		return fmt.Errorf("reply cannot be nil")
 	}
@@ -289,23 +284,21 @@ func (c *Coordinator) RPCTriggerProcessing(request TriggerProcessingRequest, rep
 	return nil
 }
 
-func (c *Coordinator) startMapReduce(plugin ...string) error {
+func (c *Coordinator) startMapReduce(plugins ...string) error {
 	handles := c.durableLog.GetUploadedHandles()
 	if len(handles) == 0 {
 		return nil
 	}
 
 	p := ""
-	if len(plugin) > 0 {
-		p = plugin[0]
+	if len(plugins) > 0 {
+		p = plugins[0]
 	}
 
 	var processingErr error
 	ForEach(handles, func(_ int, handle Handle) {
 		err := c.runMapReduceForHandle(handle, p)
 		if err != nil {
-			// Release the handle from processingHandles so it can be retried
-			// on the next poll tick.
 			c.durableLog.ReleaseProcessingHandle(handle)
 			processingErr = errors.Join(processingErr, err)
 		}
@@ -367,9 +360,6 @@ func (c *Coordinator) uploadFileToStorage(ctx context.Context) error {
 	c.uploadMu.Lock()
 	defer c.uploadMu.Unlock()
 
-	// Flush pending ring-buffer entries to disk before reading .dlog files.
-	// Without this, handles may be marked complete in memory while their
-	// data is still in the ring buffer, causing "file not found" errors.
 	if err := c.durableLog.Flush(); err != nil {
 		c.logger.Warn().Err(err).Msg("failed to flush durable log before upload")
 	}
@@ -402,9 +392,6 @@ func (c *Coordinator) uploadFileToStorage(ctx context.Context) error {
 			return
 		}
 
-		// Upload the actual file content as a separate .content file on DFS.
-		// Workers will read directly from this file, avoiding the need to
-		// embed large content inside JSON metadata.
 		contentPath := strings.TrimSuffix(remotePath, ".json") + ".content"
 		contentDfsPath := dfscommon.Path(contentPath)
 		if err := dfsClient.CreateFile(contentDfsPath); err != nil && !strings.Contains(strings.ToLower(err.Error()), "exist") {
@@ -469,7 +456,7 @@ func (c *Coordinator) buildHandleMetadataPayload(handle Handle) ([]byte, string,
 		sizeBytes = info.Size()
 	}
 
-	metadata := completedHandleMetadata{
+	metadata := CompletedHandleMetadata{
 		Handle:      handle,
 		SourceLog:   logFile,
 		SourcePath:  logPath,
@@ -484,7 +471,7 @@ func (c *Coordinator) buildHandleMetadataPayload(handle Handle) ([]byte, string,
 		return nil, "", err
 	}
 
-	remotePrefix := envOrDefault("MAPREDUCE_DFS_UPLOAD_PREFIX", "/mapreduce")
+	remotePrefix := envOrDefault(MAPREDUCE_DFS_UPLOAD_PREFIX, "/mapreduce")
 	remotePath := strings.TrimRight(remotePrefix, "/") + "/" + strings.TrimSuffix(logFile, filepath.Ext(logFile)) + ".json"
 	return payload, remotePath, nil
 }
@@ -495,9 +482,6 @@ func (c *Coordinator) decodeDlogContent(handle Handle) ([]byte, error) {
 	return decodeDlogFileContent(logPath)
 }
 
-// decodeDlogFileContent reads a .dlog binary file and extracts the actual file
-// data by stripping the WAL binary framing (handle ID, timestamp, data length,
-// EOF flag) from each record, then concatenates the raw data payloads.
 func decodeDlogFileContent(logPath string) ([]byte, error) {
 	f, err := os.Open(logPath)
 	if err != nil {
